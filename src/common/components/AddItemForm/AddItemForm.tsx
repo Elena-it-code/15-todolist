@@ -2,12 +2,14 @@ import { ChangeEvent, KeyboardEvent, useState } from "react"
 import TextField from "@mui/material/TextField"
 import AddBoxIcon from "@mui/icons-material/AddBox"
 import IconButton from "@mui/material/IconButton"
+import { RequestStatus } from "../../../app/app-reducer"
 
 type Props = {
-  addItem: (title: string) => void
+  addItem: (title: string) => void,
+  entityStatus?: RequestStatus
 }
 
-export const AddItemForm = ({ addItem }: Props) => {
+export const AddItemForm = ({ addItem, entityStatus }: Props) => {
   const [title, setTitle] = useState("")
   const [error, setError] = useState<string | null>(null)
 
@@ -41,8 +43,9 @@ export const AddItemForm = ({ addItem }: Props) => {
         helperText={error}
         onChange={changeItemHandler}
         onKeyUp={addItemOnKeyUpHandler}
+        disabled={entityStatus === "loading"}
       />
-      <IconButton onClick={addItemHandler} color={"primary"}>
+      <IconButton onClick={addItemHandler} color={"primary"} disabled={entityStatus === "loading"}>
         <AddBoxIcon />
       </IconButton>
     </div>
