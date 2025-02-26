@@ -3,7 +3,8 @@ import { RootState } from "../../../app/store"
 import { tasksApi } from "../api/tasksApi"
 import { DomainTask, UpdateTaskDomainModel, UpdateTaskModel } from "../api/tasksApi.types"
 import { AddTodolistActionType, RemoveTodolistActionType } from "./todolists-reducer"
-import { setAppStatusAC } from "../../../app/app-reducer"
+import { setAppErrorAC, setAppStatusAC } from "../../../app/app-reducer"
+import { ResultCode } from "common/enums"
 
 export type TasksStateType = {
   [key: string]: DomainTask[]
@@ -110,8 +111,13 @@ export const removeTaskTC = (arg: { taskId: string; todolistId: string }) => (di
 export const addTaskTC = (arg: { title: string; todolistId: string }) => (dispatch: Dispatch) => {
   dispatch(setAppStatusAC("loading"))
   tasksApi.createTask(arg).then((res) => {
-    dispatch(setAppStatusAC("succeeded"))
-    dispatch(addTaskAC({ task: res.data.data.item }))
+    if (res.data.resultCode === ResultCode.Success) {
+      dispatch(setAppStatusAC("succeeded"))
+      dispatch(addTaskAC({ task: res.data.data.item }))
+    } else {
+      dispatch(setAppStatusAC("failed"))
+      dispatch(setAppErrorAC(res.data.messages.length ? res.data.messages[0] : "Some error occurred."))
+    }
   })
 }
 
