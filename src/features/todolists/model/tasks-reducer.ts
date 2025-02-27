@@ -1,10 +1,12 @@
 import { Dispatch } from "redux"
-import { RootState } from "../../../app/store"
+import { AppDispatch, RootState } from "../../../app/store"
 import { tasksApi } from "../api/tasksApi"
 import { DomainTask, UpdateTaskDomainModel, UpdateTaskModel } from "../api/tasksApi.types"
 import { AddTodolistActionType, RemoveTodolistActionType } from "./todolists-reducer"
 import { setAppErrorAC, setAppStatusAC } from "../../../app/app-reducer"
 import { ResultCode } from "common/enums"
+import { handleServerNetworkError } from "common/utils"
+import { handleServerAppError } from "common/utils/handleServerAppError"
 
 export type TasksStateType = {
   [key: string]: DomainTask[]
@@ -93,7 +95,7 @@ export type AddTaskActionType = ReturnType<typeof addTaskAC>
 export type UpdateTaskActionType = ReturnType<typeof updateTaskAC>
 
 // Thunks
-export const fetchTasksTC = (todolistId: string) => (dispatch: Dispatch) => {
+export const fetchTasksTC = (todolistId: string) => (dispatch: AppDispatch) => {
   dispatch(setAppStatusAC("loading"))
   tasksApi.getTasks(todolistId).then((res) => {
     dispatch(setAppStatusAC("succeeded"))
@@ -102,23 +104,31 @@ export const fetchTasksTC = (todolistId: string) => (dispatch: Dispatch) => {
   })
 }
 
-export const removeTaskTC = (arg: { taskId: string; todolistId: string }) => (dispatch: Dispatch) => {
+export const removeTaskTC = (arg: { taskId: string; todolistId: string }) => (dispatch: AppDispatch) => {
   tasksApi.deleteTask(arg).then((res) => {
     dispatch(removeTaskAC(arg))
   })
 }
 
-export const addTaskTC = (arg: { title: string; todolistId: string }) => (dispatch: Dispatch) => {
+export const addTaskTC = (arg: { title: string; todolistId: string }) => (dispatch: AppDispatch) => {
   dispatch(setAppStatusAC("loading"))
-  tasksApi.createTask(arg).then((res) => {
-    if (res.data.resultCode === ResultCode.Success) {
-      dispatch(setAppStatusAC("succeeded"))
-      dispatch(addTaskAC({ task: res.data.data.item }))
-    } else {
-      dispatch(setAppStatusAC("failed"))
-      dispatch(setAppErrorAC(res.data.messages.length ? res.data.messages[0] : "Some error occurred."))
-    }
-  })
+  tasksApi
+    .createTask(arg)
+    .then((res) => {
+      if (res.data.resultCode === ResultCode.Success) {
+        dispatch(setAppStatusAC("succeeded"))
+        dispatch(addTaskAC({ task: res.data.data.item }))
+      } else {
+        handleServerAppError (dispatch, res.data)
+        // dispatch(setAppStatusAC("failed"))
+        // dispatch(setAppErrorAC(res.data.messages.length ? res.data.messages[0] : "Some error occurred."))
+      }
+    })
+    .catch((err) => {
+      handleServerNetworkError (dispatch, err)
+      // dispatch(setAppErrorAC(err.message))
+      // dispatch(setAppStatusAC("failed"))
+    })
 }
 
 export const updateTaskTC =
